@@ -1,6 +1,6 @@
 # Layered Type
 
-**Layered Type** is a new font concept, packaged as a **Layered Type File (LTF)**. An LTF is essentially a collection of OTF/TTF fonts bundled with a `presets` file that defines the order, color, opacity, and X/Y positioning of *layers*. Each LTF can include multiple predefined *presets*, and *styles* (i.e., font files) can be reused, repeated, or omitted entirely in different layers. Users can recolor specific layers through a UI, offering flexibility and creative control.
+**Layered Type** is a new font concept, packaged as a **Layered Type File (LTF)**. An LTF is essentially a collection of OTF/TTF fonts bundled with a `presets.json` file that defines the order, color, opacity, and X/Y positioning of *layers*. Each LTF can include multiple predefined *presets*, and *styles* (i.e., font files) can be reused, repeated, or omitted entirely in different layers. Users can recolor specific layers through a UI, offering flexibility and creative control.
 
 This format is especially helpful for font creators aiming to deliver high-quality, layered typography with ease. It simplifies the process compared to traditional *layer fonts* (which require separate files and manual organization), while providing more flexibility than fixed-color formats like COLR/SVG, whose colors aren't easily customizable.
 
@@ -44,11 +44,15 @@ For font designers, LTF offers a powerful way to present fonts at their best.
 - Randomize layer properties: order, opacity, X/Y offset, etc.
 - Choose which settings to randomize.
 
+### Metadata
+- Metadata (information, licnese, description, etc.) can be saved in the font.
+- Expandable JSON format, allowing for separate metadata fields. 
+
 ---
 
 ## Potential Features
 
-These enhancements are under consideration, though core design remains in the font creation stage:
+These enhancements are under a variable degree of consideration, though core design remains in the font creation stage:
 
 ### Gradients
 - Possible via SVG, but design complexity increases (e.g., multiline behavior, per-glyph handling).
@@ -56,8 +60,9 @@ These enhancements are under consideration, though core design remains in the fo
 ### Stroke/Outline Layer
 - Could reduce need for additional styles; however, may render inconsistently.
 
-### COLR Font Compatibility
-- Detect and open COLR fonts using `**x**.layer**n**` naming convention.
+### SVG Font Compatibility/Conversion
+- Detect and open SVG fonts using `a.layer0` naming convention.
+- UI might support exporting a preset as an SVG font for convenience.
 
 ### Metrics & Alignment
 - Currently, all styles must match metrics/features for proper alignment.
@@ -66,36 +71,29 @@ These enhancements are under consideration, though core design remains in the fo
 ### Tracking
 - Adjust letter spacing per layer (would require similar alignment logic as above).
 
-### Overlapping Support
+### Overlaying Characters Support
 - Could simulate traditional color fonts, but conflicts with LTF’s stacking model.
 
 ### Variable Font Support
-- Allow style interpolation via variable axis.
-- Enable animations between styles (not exportable to static formats like Illustrator).
-
-### Converters
-- A COLR/SVG to LTF converter could serve as a base, though results may vary.
-
-### Export to Standard Formats
-- UI might support export as COLR/SVG fonts for convenience.
+- Allow style interpolation via a variable axis.
 
 ### Linked Colors
 - Allow end-users to change multiple linked layers with a single click.
 
-### Glyphs Integration
-- Export OTF master/instances from Glyphs, then package with presets into an LTF.
+### Glyphs App Integration
+- Export OTF master/instances from Glyphs, generate the `presets.json` file and package into an LTF.
 
 ### Preview Enhancements
-- Custom preview sizes (optional).
+- Custom preview sizes.
 - Preset reordering or alphabetical sorting.
-- Allow font creators to define default preview text (possibly external to LTF).
-- UI preview background color toggle (not stored in presets).
+- Allow font creators to define default preview text.
+- UI preview background color toggle (not stored in `presets.json`).
 
 ---
 
 ## Planned Improvements
 
-- **Reusable Presets File:** Import presets from other LTFs.
+- **Reusable Presets File:** Import presets.json from other LTFs.
 - **Lock Features:** Restrict editing of certain layers (e.g., always keep shadow black).
 - **Separate UIs:** One for font creators (possibly in Glyphs), and another for end-users (e.g., Illustrator plugin).
 
@@ -103,7 +101,7 @@ These enhancements are under consideration, though core design remains in the fo
 
 ## Terminology
 
-- **Style:** A standard OTF/TTF font (e.g., Bold, Italic) embedded in the LTF.
+- **Style:** A standard OTF/TTF font embedded in the LTF.
 - **Layer:** A combination of a style, color, opacity, and X/Y offset.
 - **Preset:** A named set of layers in a defined order.
 
