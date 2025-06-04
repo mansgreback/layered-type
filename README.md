@@ -8,6 +8,17 @@ For font designers, LTF offers a powerful way to present fonts at their best.
 
 ---
 
+## How To Use
+
+- A live demo can be accessed at https://aringtypeface.com/ltf/
+- Or download and open directory `ui`.
+- Load your OTFs/TTFs or one of the sample LFTs from the `samples` directory.
+- Create or adjust layers, save or adjust presets, and download your Layered Type font.
+- Your saved font can then be loaded back into the UI and you can continue working on it.
+- Remember to reload the page between working on fonts, or you will merge them.
+
+---
+
 ## Key Differences from Existing Formats
 
 ### SVG Fonts
