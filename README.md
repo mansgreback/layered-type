@@ -11,8 +11,8 @@ For font designers, LTF offers a powerful way to present fonts at their best.
 ## Key Differences from Existing Formats
 
 ### SVG Fonts
-- Characters in LTF do **not** overlap unless designed that way.
-- Shadows/outlines can be added behind full words without overlapping glyphs.
+- Characters in LTF do **not** overlap. 
+- Shadows/outlines can be added behind full words without overlaying following or preceding glyphs.
 - Supports user-defined color changes.
 - All combinations are stored as *presets* within a single file.
 - Potentially faster rendering by applying styles to full layers, not individual glyphs.
