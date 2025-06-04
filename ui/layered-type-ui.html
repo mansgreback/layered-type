@@ -1,0 +1,107 @@
+
+<!-- 
+    Copyright 2025 Måns Grebäck
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Layered Type is a font packaging format that combines multiple font 
+    styles into a single file (LTF) with customizable visual presets. 
+    More information, samples, and demo at 
+    https://github.com/mansgreback/layered-type
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Layered Type File Composition</title>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <link rel="stylesheet" href="layered-type-style.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css?family=Inter:400,600,800&display=swap');
+  </style>
+</head>
+<body>
+
+  <div class="panel">
+    <h1>Layered Type File Composition</h1>
+    <div id="notifBar"></div>
+  </div>
+
+    <div id="fontDropArea">
+      Drop your font files here or click to upload
+      <input type="file" id="fontUpload" accept=".ttf,.otf,.ltf,.zip" multiple />
+    </div>
+
+  <div class="panel">
+    <div id="fontRow">
+      <label id="familyNameLabel" for="familyNameInput">Font Family:</label>
+      <input id="familyNameInput" type="text" value="" placeholder="Name the font..." />
+      <button id="downloadPackageBtn" class="preset-btn white">Download Font</button>
+    </div>
+    <div id="metadataField">
+      <label for="metadataInput" class="label">Metadata:</label>
+      <textarea id="metadataInput" rows="1" placeholder="Info/description..."></textarea>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="presetRow">
+      <select id="presetsDropdown"></select>
+      <button id="deletePresetBtn" class="preset-btn red" title="Delete this preset">Delete Preset</button>
+    </div>
+    <div id="presetEditRow">
+      <input id="presetNameInput" type="text" placeholder="Preset name" />
+      <button id="savePresetBtn" class="preset-btn green" title="Save or Overwrite preset">Save</button>
+      <button id="newPresetBtn" class="preset-btn white" title="Create a new preset from all styles">New Preset</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="previewTextRow">
+      <label for="previewText" class="label">Preview Text:</label>
+      <input type="text" id="previewText" rows="1" placeholder="Preview text..." value="Quick Brown Fox" />
+    </div>
+    <div id="preview-container">
+      <div id="preview"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="layerButtonsRow">
+      <button id="addLayerBtn" class="layerBtn green">Add Layer</button>
+
+  <label><input type="checkbox" id="randomizeOrderChk">Order</label>
+  <label><input type="checkbox" id="randomizeColorChk">Color</label>
+  <label><input type="checkbox" id="randomizeOpacityChk">Opacity</label>
+  <label><input type="checkbox" id="randomizeStylesChk">Styles</label>
+  <label><input type="checkbox" id="randomizeXOffsetChk">X Offset</label>
+  <label><input type="checkbox" id="randomizeYOffsetChk">Y Offset</label>
+  <button id="randomizeBtn" class="layerBtn green" title="Randomize selected properties">Randomize</button>
+
+    </div>
+    <div class="layer-list" id="layerList"></div>
+  </div>
+
+  <div id="duplicateFontModal" style="display:none; position:fixed; z-index:5000; left:0; top:0; width:100vw; height:100vh; background:rgba(40,40,60,0.22);">
+    <div class="panel" style="max-width:350px; margin:100px auto 0 auto; text-align:center; padding:28px 16px 18px 16px;">
+      <div style="font-size:1.14em; margin-bottom:13px;" id="duplicateFontMsg"></div>
+      <button class="layerBtn green" id="replaceFontBtn">Replace</button>
+      <button class="layerBtn green" id="addFontBtn">Add</button>
+      <button class="layerBtn red" id="cancelFontBtn">Cancel</button>
+    </div>
+  </div>
+
+  <footer class="panel" style="margin-top: 36px; font-size: 0.96em; color: #999;">
+    Layered Type File (LTF) is an open-source project by <a href="https://mansgreback.com" target="_blank">Måns Grebäck</a> · 
+    <a href="https://github.com/mansgreback/layered-type-file" target="_blank">GitHub</a>
+  </footer>
+
+  <script src="layered-type-script.js"></script>
+  <script src="export-image-modal.js"></script>
+</body>
+</html>

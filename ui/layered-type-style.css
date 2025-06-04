@@ -1,0 +1,399 @@
+
+/* 
+    Copyright 2025 Måns Grebäck
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Layered Type is a font packaging format that combines multiple font 
+    styles into a single file (LTF) with customizable visual presets. 
+    More information, samples, and demo at 
+    https://github.com/mansgreback/layered-type
+*/
+
+:root {
+  --bg: #f7f7fa;
+  --white: #fff;
+  --gray: #cfcfd3;
+  --gray-dark: #7b7b85;
+  --primary: #49b7ac;
+  --green: #3cb371;
+  --green-dark: #2e8b57;
+  --red: #e74c3c;
+  --red-dark: #c0392b;
+  --text: #222;
+  --font: 'Inter', 'Segoe UI', 'Arial', sans-serif;
+  --radius: 3px;
+}
+
+html, body {
+  height: 100%;
+  margin: 1%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+}
+
+footer {
+  text-align: center;
+  padding: 30px;
+}
+
+a {
+  color: var(--font);
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 25px 0 25px 0px;
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  text-align: center;
+}
+
+label, .label {
+  font-size: 1em;
+  color: var(--gray-dark);
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+select {
+  min-width: 100px;
+  font-family: inherit;
+  font-size: 1em;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray);
+  margin: 0;
+  background: var(--white);
+  color: var(--text);
+  box-sizing: border-box;
+  outline: none;
+}
+
+.color-input {
+  min-width: 30px;
+  padding: 0;
+  margin: 0;
+  outline: none;
+}
+
+.color-hex{
+  width: 85px;
+  max-width: 85px;
+  min-width: 55px;
+  font-family: courier;
+  text-align: right;
+  padding: 2px 6px;
+}
+
+.opacity-slider {
+  padding: 0;
+  width: 100px;
+  min-width: 25px;
+}
+
+.opacity-label {
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.offset-input {
+  width: 50px;
+  padding: 6px 1px;
+  padding-right: 1px;
+  text-align: right;
+}
+
+.glyph-preview {
+  max-width: 30px;
+  min-width: 30px;
+}
+
+.alias-input {
+  min-width: 40px; 
+  max-width: 300px; 
+}
+
+input, textarea, button {
+  min-height: 30px;
+  font-family: inherit;
+  font-size: 1em;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray);
+  background: var(--white);
+  color: var(--text);
+  box-sizing: border-box;
+  outline: none;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+
+input[type="checkbox"] {
+  width: 15px;
+  margin: 2;
+  min-margin: 0;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+  background: #f3f9f7;
+}
+
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius);
+  margin-right: 4px;
+  transition: background 0.13s;
+}
+
+button:hover, button:focus {
+  background: #31978e;
+}
+
+button.green, .layerBtn.green, .preset-btn.green {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+button.green:hover, .layerBtn.green:hover, .preset-btn.green:hover {
+  background: var(--green-dark);
+}
+button.red, .layerBtn.red, .preset-btn.red {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+button.red:hover, .layerBtn.red:hover, .preset-btn.red:hover {
+  background: var(--red-dark);
+}
+button.white, .layerBtn.white, .preset-btn.white {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--gray);
+}
+button.white:hover, .layerBtn.white:hover, .preset-btn.white:hover {
+  background: #f3f3f3;
+}
+
+.remove-btn, .layerBtn.red, .preset-btn.red {
+  background: var(--red);
+  color: #fff;
+  border: none;
+}
+.remove-btn:hover, .layerBtn.red:hover, .preset-btn.red:hover {
+  background: var(--red-dark);
+}
+
+.duplicate-btn, .layerBtn.green, .preset-btn.green {
+  background: var(--green);
+  color: #fff;
+  border: none;
+}
+.duplicate-btn:hover, .layerBtn.green:hover, .preset-btn.green:hover {
+  background: var(--green-dark);
+}
+
+#notifBar {
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 1em;
+  font-weight: 500;
+  padding: 8px 20px;
+  z-index: 9001;
+  min-width: 130px;
+  max-width: 70vw;
+  text-align: center;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+#fontDropArea {
+  border: 1px dashed var(--gray);
+  background: var(--white);
+  color: var(--gray-dark);
+  border-radius: var(--radius);
+  font-size: 1em;
+  text-align: center;
+  padding: 40px 0;
+  margin: auto;
+  margin-bottom: 20px;
+  max-width: 600px;
+  cursor: pointer;
+}
+
+#fontDropArea.dragover {
+  background: #e8faf7;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+#fontRow, #presetRow, #presetEditRow, #layerButtonsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;  
+  margin: 0 auto;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+#metadataInput, #previewText {
+  width: 100%;
+  min-width: 100px;
+  font-size: 1em;
+  border-radius: var(--radius);
+  border: 1px solid var(--gray);
+  background: var(--white);
+  color: var(--text);
+}
+
+#preview-container {
+  display: block;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px #0001;
+  width: 100%;
+  max-width: 100%;
+  height: 130px;
+  overflow: hidden;
+  position: relative;
+  padding-bottom: 100px;
+}
+
+.resize-handle {
+  height: 12px;
+  cursor: ns-resize;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, #e8e8f0, #e0e0ec 80%, #f7f7fa);
+  z-index: 10;
+}
+
+.main-container {
+display: flex; 
+align-items: center;
+}
+
+#preview {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  position: relative;
+  font-size: 64pt;
+  line-height: 1.05;
+  white-space: pre;
+  margin: 0;
+  color: var(--text);
+  user-select: none;
+}
+
+.layer {
+  pointer-events: none;
+  white-space: pre;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer.base-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-list {
+  width: 100%;
+}
+
+.layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 1em;
+}
+
+.layer-controls:hover {
+  background-color: #dfe4ea;
+}
+
+.drag-handle {
+  color: var(--gray-dark);
+  cursor: grab;
+  user-select: none;
+  min-width: 15px;
+  align-items: center;
+}
+
+.remove-btn,
+.duplicate-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 1px 5px;
+}
+
+.duplicate-btn.green {
+  background: var(--green);
+  color: #fff;
+  border: none;
+}
+.duplicate-btn.green:hover {
+  background: var(--green-dark);
+}
+
+#duplicateFontModal {
+  position: fixed;
+  z-index: 5000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(40,40,60,0.22);
+}
+
+#duplicateFontModal .panel {
+  justify-content: flex;
+  margin: auto;
+  text-align: center;
+  padding: 28px 16px 18px 16px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px #0001;
+}
+
+#randomizeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
