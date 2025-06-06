@@ -1,15 +1,3 @@
-
-//  Copyright 2025 Måns Grebäck
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//  http://www.apache.org/licenses/LICENSE-2.0
-
-//  Layered Type is a font packaging format that combines multiple font 
-//  styles into a single file (LTF) with customizable visual presets. 
-//  More information, samples, and demo at 
-//  https://github.com/mansgreback/layered-type
-
 // UI Elements
 const preview = document.getElementById('preview');
 const previewText = document.getElementById('previewText');
@@ -141,7 +129,7 @@ savePresetBtn.addEventListener('click', () => {
   currentPresetName = name;
   updatePresetsDropdown();
   presetsDropdown.value = name;
-  showNotif('Preset saved');
+  showNotif('Preset saved!');
 });
 
 presetsDropdown.addEventListener('change', () => {
@@ -213,7 +201,7 @@ newPresetBtn.addEventListener('click', async () => {
   presetsDropdown.value = "";
   setPresetNameInput("");
   currentPresetName = "";
-  showNotif('Created new preset');
+  showNotif('Created new preset!');
 });
 
 function updateRandomizeButtonState() {
@@ -265,7 +253,7 @@ randomizeBtn.addEventListener('click', async () => {
       if (Math.random() < 0.5) {
         l.opacity = 1;
       } else {
-        l.opacity = Math.round((10 + Math.random() * 80)) / 100;
+        l.opacity = Math.round((10 + Math.random() * 80)) / 100; // 0.10–0.90
       }
     });
   }
@@ -316,7 +304,7 @@ randomizeBtn.addEventListener('click', async () => {
       if (Math.random() < 0.5) {
         l.offsetX = 0;
       } else {
-        l.offsetX = Math.floor(Math.random() * 11) - 5; 
+        l.offsetX = Math.floor(Math.random() * 11) - 5; // -5 to 5
       }
     });
   }
@@ -327,14 +315,14 @@ randomizeBtn.addEventListener('click', async () => {
       if (Math.random() < 0.5) {
         l.offsetY = 0;
       } else {
-        l.offsetY = Math.floor(Math.random() * 11) - 5; 
+        l.offsetY = Math.floor(Math.random() * 11) - 5; // -5 to 5
       }
     });
   }
 
   updateLayerList();
   renderPreview();
-  showNotif('Randomized');
+  showNotif('Randomized!');
 });
 
 fontDropArea.addEventListener('click', () => fontUpload.click());
@@ -382,8 +370,8 @@ downloadPackageBtn.addEventListener('click', async () => {
     }
   });
   await Promise.all(fontPromises);
-  let fname = (allPresets.group || "layered-type").replace(/\s+/g, "");
-  if (!fname) fname = "layered-type";
+  let fname = (allPresets.group || "color-font-package").replace(/\s+/g, "");
+  if (!fname) fname = "color-font";
   fname += ".ltf";
   zip.generateAsync({type: "blob"}).then(content => {
     const a = document.createElement('a');
@@ -392,7 +380,7 @@ downloadPackageBtn.addEventListener('click', async () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showNotif('Font downloaded');
+    showNotif('Font package downloaded!');
   });
 });
 
@@ -411,6 +399,7 @@ function getRandomColor() {
 }
 
 function buildPresetsFile(presetsObj) {
+  // Build new JSON format!
   const out = {
     group: presetsObj.group || "",
     metadata: { description: presetsObj.metadata?.description || "" },
@@ -418,6 +407,7 @@ function buildPresetsFile(presetsObj) {
   };
   for (const presetName in presetsObj.presets) {
     out.presets[presetName] = presetsObj.presets[presetName].map(layer => {
+      // Shallow copy, allow extensibility
       return Object.assign({}, layer);
     });
   }
@@ -722,22 +712,25 @@ function duplicateLayer(layer, idx) {
 }
 
 function updatePreviewContainerPadding() {
+  // Smart vertical padding, horizontal always 0
   let yOffsets = layers.map(l => l.offsetY || 0);
   if (!yOffsets.length) {
     document.getElementById('preview-container').style.padding = '12px 0 12px 0';
     return;
   }
   let minY = Math.min(...yOffsets), maxY = Math.max(...yOffsets);
-  let padTop    = 12 + Math.max(0, maxY - 10);
-  let padBottom = 12 + Math.max(0, -10 - minY);
+  let padTop    = 12 + Math.max(0, maxY - 10);     // positive Y = down = needs more top
+  let padBottom = 12 + Math.max(0, -10 - minY);    // negative Y = up = needs more bottom
   document.getElementById('preview-container').style.padding =
     `${padTop}px 0 ${padBottom}px 0`;
 }
 
+// --- Layered Preview Rendering ---
 function renderPreview() {
   preview.innerHTML = '';
   let text = previewText.value || '';
 
+  // All layers are absolutely positioned and flex centered
   if (layers.length > 0) {
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
@@ -764,53 +757,112 @@ previewText.addEventListener('keydown', e => {
   }
 });
 
+// Flexible ZIP loader: allow root or a single subfolder
+async function getZipBasePath(zip) {
+  // Collect all file paths (excluding directory entries)
+  const paths = Object.keys(zip.files).filter(p => !zip.files[p].dir);
+  // Get their top-most segment
+  const topLevels = paths.map(p => p.split('/')[0]);
+  const unique = [...new Set(topLevels)];
+  if (unique.length === 1 && paths.every(p => p.startsWith(unique[0] + '/'))) {
+    // All files are within one subfolder
+    return unique[0] + '/';
+  }
+  // Files are at root
+  return '';
+}
+
+
 function handleFontFiles(files) {
   Array.from(files).forEach(file => {
     if (file.name.toLowerCase().endsWith('.zip') || file.name.toLowerCase().endsWith('.ltf')) {
       const reader = new FileReader();
       reader.onload = function (e) {
-        JSZip.loadAsync(e.target.result).then(async zip => {
-          await Promise.all(Object.values(zip.files).map(async zipEntry => {
-            if (!zipEntry.dir && /\.(ttf|otf|ltf)$/i.test(zipEntry.name)) {
-              const basename = zipEntry.name.replace(/.*[\\/]/, '');
-              fontFilesByBase[basename] = zipEntry;
-            }
-          }));
-          updateStylesFromFonts();
-          const presetsEntry = Object.values(zip.files).find(f => f.name.match(/^presets(\.json)?$/i));
-          if (presetsEntry) {
-            let text = await presetsEntry.async('string');
-            let jsonData = null;
-            try {
-              jsonData = JSON.parse(text);
-              allPresets = validateAndNormalizeJsonPresets(jsonData);
-              setFamilyNameInput(allPresets.group || "");
-              setMetadataInput(allPresets.metadata.description || "");
-              updatePresetsDropdown();
-              originalPresets = JSON.parse(JSON.stringify(allPresets));
-              const keys = Object.keys(allPresets.presets);
-              if (keys.length > 0) {
-                presetsDropdown.value = keys[0];
-                loadPresetOption(keys[0], false);
-                setPresetNameInput(keys[0]);
-                currentPresetName = keys[0];
-              }
-              isLoaded = true;
-              updateStylesFromFonts();
-              updateLayerList();
-              renderPreview();
-              showNotif('Font loaded');
-              return;
-            } catch (err) {
-              showNotif('Malformed JSON in preset file.');
-              return;
-            }
-          }
-          loadAllFontsFromZipObject(zip);
-        });
+
+
+JSZip.loadAsync(e.target.result).then(async zip => {
+  // Gather all non-directory file paths
+  const filePaths = Object.values(zip.files)
+    .filter(f => !f.dir)
+    .map(f => f.name);
+
+  // Helper: find the first visible (non-dot, non-__MACOSX) top-level folder if any
+  function getAcceptableBasePrefix(paths) {
+    // Find all top-level folders
+    const folderCounts = {};
+    for (let p of paths) {
+      const seg = p.split(/[\\/]/)[0];
+      if (!seg.startsWith('.') && seg !== '__MACOSX') {
+        folderCounts[seg] = (folderCounts[seg] || 0) + 1;
+      }
+    }
+    // If all files are at root (no slash), return ""
+    if (Object.keys(folderCounts).length === 0 || paths.every(p => !p.includes('/'))) return "";
+    // If all files are in one top-level folder, return it
+    if (Object.keys(folderCounts).length === 1) return Object.keys(folderCounts)[0] + '/';
+    // Else: try to find the biggest non-dot, non-__MACOSX folder
+    let best = "", bestCount = 0;
+    for (let k in folderCounts) {
+      if (folderCounts[k] > bestCount) { best = k; bestCount = folderCounts[k]; }
+    }
+    return best ? best + '/' : '';
+  }
+
+  const prefix = getAcceptableBasePrefix(filePaths);
+
+  // Now process font files as if they are at the root (strip prefix if present)
+  fontFilesByBase = {};
+  for (const zipEntry of Object.values(zip.files)) {
+    if (zipEntry.dir) continue;
+    let relName = zipEntry.name.startsWith(prefix) ? zipEntry.name.slice(prefix.length) : zipEntry.name;
+    if (/\.(ttf|otf|ltf)$/i.test(relName)) {
+      fontFilesByBase[relName] = zipEntry;
+    }
+  }
+  updateStylesFromFonts();
+
+  // Find presets.json (in root or in subfolder)
+  const presetsEntry = Object.values(zip.files).find(f => {
+    let relName = f.name.startsWith(prefix) ? f.name.slice(prefix.length) : f.name;
+    return relName.match(/^presets(\.json)?$/i);
+  });
+  if (presetsEntry) {
+    let text = await presetsEntry.async('string');
+    let jsonData = null;
+    try {
+      jsonData = JSON.parse(text);
+      allPresets = validateAndNormalizeJsonPresets(jsonData);
+      setFamilyNameInput(allPresets.group || "");
+      setMetadataInput(allPresets.metadata.description || "");
+      updatePresetsDropdown();
+      originalPresets = JSON.parse(JSON.stringify(allPresets));
+      const keys = Object.keys(allPresets.presets);
+      if (keys.length > 0) {
+        presetsDropdown.value = keys[0];
+        loadPresetOption(keys[0], false);
+        setPresetNameInput(keys[0]);
+        currentPresetName = keys[0];
+      }
+      isLoaded = true;
+      updateStylesFromFonts();
+      updateLayerList();
+      renderPreview();
+      showNotif('Font loaded');
+      if (window.hideSampleBar) window.hideSampleBar();
+      return;
+    } catch (err) {
+      showNotif('Malformed JSON in preset file.');
+      return;
+    }
+  }
+  // If no presets.json, just load all fonts in the ZIP
+  await loadAllFontsFromZipObject(zip, prefix);
+});
+
       };
       reader.readAsArrayBuffer(file);
     } else if (/\.(ttf|otf|ltf|json)$/i.test(file.name)) {
+      // Try to parse JSON as preset
       if (file.name.toLowerCase().endsWith('.json')) {
         const reader = new FileReader();
         reader.onload = function (e) {
@@ -834,7 +886,8 @@ function handleFontFiles(files) {
             updateStylesFromFonts();
             updateLayerList();
             renderPreview();
-            showNotif('Font loaded');
+            showNotif('Font package loaded!');
+            if (window.hideSampleBar) window.hideSampleBar();
             return;
           } catch (err) {
             showNotif('Malformed JSON in preset file.');
@@ -855,11 +908,16 @@ function handleFontFiles(files) {
         }
         processFontUpload(file, targetFilename);
       }
+      if (window.hideSampleBar) window.hideSampleBar();
     }
   });
 }
 
+
+
 function validateAndNormalizeJsonPresets(data) {
+  // Validate and normalize the loaded JSON preset file for application use
+  // Throws error on malformed structure
   if (typeof data !== "object" || data === null)
     throw new Error("Preset file is not valid JSON object");
 
@@ -912,7 +970,7 @@ function processFontUpload(file, targetFilename) {
       addFontAsLayer(styleObj).then(() => {
         updateLayerList();
         renderPreview();
-        showNotif('Font uploaded');
+        showNotif('Font uploaded!');
       });
     }
   });
@@ -955,15 +1013,19 @@ cancelFontBtn.onclick = function() {
   showNotif('Cancelled');
 };
 
-async function loadAllFontsFromZipObject(zip) {
+async function loadAllFontsFromZipObject(zip, basePath) {
   let added = [];
   for (const zipEntry of Object.values(zip.files)) {
-    if (!zipEntry.dir && /\.(ttf|otf|ltf)$/i.test(zipEntry.name)) {
+    if (
+      !zipEntry.dir &&
+      /\.(ttf|otf|ltf)$/i.test(zipEntry.name) &&
+      (zipEntry.name.startsWith(basePath) && zipEntry.name.replace(basePath, '').indexOf('/') === -1)
+    ) {
       const blob = await zipEntry.async('blob');
       const url = URL.createObjectURL(blob);
       const fontName = `font${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const displayName = zipEntry.name.replace(/.*[\\/]/, '').replace(/\.[^/.]+$/, "");
-      const filename = zipEntry.name.replace(/.*[\\/]/, '');
+      const filename = zipEntry.name.replace(basePath, '');
       const fontFace = new FontFace(fontName, `url(${url})`);
       await fontFace.load();
       document.fonts.add(fontFace);
@@ -980,7 +1042,8 @@ async function loadAllFontsFromZipObject(zip) {
   }
   updateLayerList();
   renderPreview();
-  showNotif('Fonts loaded');
+  showNotif('Fonts loaded!');
+  if (window.hideSampleBar) window.hideSampleBar();
 }
 
 async function loadPresetOption(presetName, isPresetSwitch = true) {
@@ -1025,8 +1088,9 @@ async function loadPresetOption(presetName, isPresetSwitch = true) {
   updateLayerList();
   renderPreview();
   if (isPresetSwitch) {
-    showNotif('Preset loaded');
+    showNotif('Preset loaded!');
   }
+  if (window.hideSampleBar) window.hideSampleBar();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -1038,10 +1102,12 @@ window.addEventListener('DOMContentLoaded', () => {
   updateLayerList();
   renderPreview();
 
+  // --- Make #preview-container vertically resizable ("pullable") ---
   (function makePreviewContainerResizable() {
     const container = document.getElementById('preview-container');
     if (!container) return;
 
+    // Create and style the resize handle
     const resizeHandle = document.createElement('div');
     resizeHandle.style.width = '100%';
     resizeHandle.style.height = '12px';
@@ -1053,6 +1119,7 @@ window.addEventListener('DOMContentLoaded', () => {
     resizeHandle.style.zIndex = 10;
     resizeHandle.title = "Drag to resize preview area";
 
+    // Make sure container is position:relative
     container.style.position = 'relative';
     container.appendChild(resizeHandle);
 
@@ -1077,6 +1144,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (!isResizing) return;
       let newHeight = Math.max(60, startHeight + (e.clientY - startY));
       container.style.height = newHeight + 'px';
+      // Also update #preview height to match
       const preview = document.getElementById('preview');
       if (preview) preview.style.height = newHeight + 'px';
     }
@@ -1084,6 +1152,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', doResize);
     document.addEventListener('mouseup', stopResize);
 
+    // Optional: Touch support
     resizeHandle.addEventListener('touchstart', function(e) {
       if (e.touches.length === 1) {
         isResizing = true;
