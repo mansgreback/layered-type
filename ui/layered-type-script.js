@@ -732,6 +732,9 @@ function renderPreview() {
 
   // All layers are absolutely positioned and flex centered
   if (layers.length > 0) {
+    // Get the current font size in px for scaling offsets
+    const fontSizePx = parseFloat(window.getComputedStyle(preview).fontSize) || 65;
+    // Each offset unit = 0.65px at 65px font size, i.e. offset_px = input * (fontSizePx / 100)
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const span = document.createElement('span');
@@ -740,13 +743,17 @@ function renderPreview() {
       span.style.fontFamily = layer.fontName;
       span.style.color = layer.color;
       span.style.opacity = typeof layer.opacity === 'number' ? layer.opacity : 1;
-      span.style.transform = `translate(${layer.offsetX}px, ${-layer.offsetY}px)`;
+      // --- CHANGED: Use scaled offset units ---
+      const offsetX_px = (layer.offsetX || 0) * (fontSizePx / 100);
+      const offsetY_px = (layer.offsetY || 0) * (fontSizePx / 100);
+      span.style.transform = `translate(${offsetX_px}px, ${-offsetY_px}px)`;
       preview.appendChild(span);
     }
   }
 
   updatePreviewContainerPadding();
 }
+
 
 previewText.addEventListener('input', () => {
   renderPreview();
