@@ -54,6 +54,16 @@ function showNotif(msg, ms=1800) {
   }, ms);
 }
 
+// Resize Text Preview
+document.getElementById('previewFontSize').addEventListener('input', function() {
+  var pt = Math.max(8, Math.min(256, parseInt(this.value)||65));
+  var preview = document.getElementById('preview');
+  if(preview) {
+    preview.style.fontSize = pt + 'pt';
+    if(window.renderPreview) window.renderPreview();
+  }
+});
+
 // --- Utility functions ---
 function normalizeHex(val) {
   val = val.trim().replace(/^#+/, '');
@@ -705,7 +715,7 @@ function updateLayerList() {
 
 function duplicateLayer(layer, idx) {
   const newLayer = { ...layer, id: Math.random().toString(36).substr(2, 9) };
-  layers.unshift(newLayer);
+  layers.splice(idx + 1, 0, newLayer);
   updateLayerList();
   renderPreview();
   showNotif('Layer duplicated');
@@ -730,11 +740,7 @@ function renderPreview() {
   preview.innerHTML = '';
   let text = previewText.value || '';
 
-  // All layers are absolutely positioned and flex centered
   if (layers.length > 0) {
-    // Get the current font size in px for scaling offsets
-    const fontSizePx = parseFloat(window.getComputedStyle(preview).fontSize) || 65;
-    // Each offset unit = 0.65px at 65px font size, i.e. offset_px = input * (fontSizePx / 100)
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
       const span = document.createElement('span');
@@ -743,10 +749,10 @@ function renderPreview() {
       span.style.fontFamily = layer.fontName;
       span.style.color = layer.color;
       span.style.opacity = typeof layer.opacity === 'number' ? layer.opacity : 1;
-      // --- CHANGED: Use scaled offset units ---
-      const offsetX_px = (layer.offsetX || 0) * (fontSizePx / 100);
-      const offsetY_px = (layer.offsetY || 0) * (fontSizePx / 100);
-      span.style.transform = `translate(${offsetX_px}px, ${-offsetY_px}px)`;
+      // Use em for offset so it's proportional to font size!
+      const offsetX_em = (layer.offsetX || 0) / 100;
+      const offsetY_em = (layer.offsetY || 0) / 100;
+      span.style.transform = `translate(${offsetX_em}em, ${-offsetY_em}em)`;
       preview.appendChild(span);
     }
   }
@@ -781,96 +787,99 @@ async function getZipBasePath(zip) {
 
 
 function handleFontFiles(files) {
+  let duplicates = [];
+  let newFiles = [];
+
   Array.from(files).forEach(file => {
+    // Handle ZIP and LTF files immediately
     if (file.name.toLowerCase().endsWith('.zip') || file.name.toLowerCase().endsWith('.ltf')) {
       const reader = new FileReader();
       reader.onload = function (e) {
+        JSZip.loadAsync(e.target.result).then(async zip => {
+          // Gather all non-directory file paths
+          const filePaths = Object.values(zip.files)
+            .filter(f => !f.dir)
+            .map(f => f.name);
 
+          // Helper: find the first visible (non-dot, non-__MACOSX) top-level folder if any
+          function getAcceptableBasePrefix(paths) {
+            // Find all top-level folders
+            const folderCounts = {};
+            for (let p of paths) {
+              const seg = p.split(/[\\/]/)[0];
+              if (!seg.startsWith('.') && seg !== '__MACOSX') {
+                folderCounts[seg] = (folderCounts[seg] || 0) + 1;
+              }
+            }
+            // If all files are at root (no slash), return ""
+            if (Object.keys(folderCounts).length === 0 || paths.every(p => !p.includes('/'))) return "";
+            // If all files are in one top-level folder, return it
+            if (Object.keys(folderCounts).length === 1) return Object.keys(folderCounts)[0] + '/';
+            // Else: try to find the biggest non-dot, non-__MACOSX folder
+            let best = "", bestCount = 0;
+            for (let k in folderCounts) {
+              if (folderCounts[k] > bestCount) { best = k; bestCount = folderCounts[k]; }
+            }
+            return best ? best + '/' : '';
+          }
 
-JSZip.loadAsync(e.target.result).then(async zip => {
-  // Gather all non-directory file paths
-  const filePaths = Object.values(zip.files)
-    .filter(f => !f.dir)
-    .map(f => f.name);
+          const prefix = getAcceptableBasePrefix(filePaths);
 
-  // Helper: find the first visible (non-dot, non-__MACOSX) top-level folder if any
-  function getAcceptableBasePrefix(paths) {
-    // Find all top-level folders
-    const folderCounts = {};
-    for (let p of paths) {
-      const seg = p.split(/[\\/]/)[0];
-      if (!seg.startsWith('.') && seg !== '__MACOSX') {
-        folderCounts[seg] = (folderCounts[seg] || 0) + 1;
-      }
-    }
-    // If all files are at root (no slash), return ""
-    if (Object.keys(folderCounts).length === 0 || paths.every(p => !p.includes('/'))) return "";
-    // If all files are in one top-level folder, return it
-    if (Object.keys(folderCounts).length === 1) return Object.keys(folderCounts)[0] + '/';
-    // Else: try to find the biggest non-dot, non-__MACOSX folder
-    let best = "", bestCount = 0;
-    for (let k in folderCounts) {
-      if (folderCounts[k] > bestCount) { best = k; bestCount = folderCounts[k]; }
-    }
-    return best ? best + '/' : '';
-  }
+          // Now process font files as if they are at the root (strip prefix if present)
+          fontFilesByBase = {};
+          for (const zipEntry of Object.values(zip.files)) {
+            if (zipEntry.dir) continue;
+            let relName = zipEntry.name.startsWith(prefix) ? zipEntry.name.slice(prefix.length) : zipEntry.name;
+            if (/\.(ttf|otf|ltf)$/i.test(relName)) {
+              fontFilesByBase[relName] = zipEntry;
+            }
+          }
+          updateStylesFromFonts();
 
-  const prefix = getAcceptableBasePrefix(filePaths);
-
-  // Now process font files as if they are at the root (strip prefix if present)
-  fontFilesByBase = {};
-  for (const zipEntry of Object.values(zip.files)) {
-    if (zipEntry.dir) continue;
-    let relName = zipEntry.name.startsWith(prefix) ? zipEntry.name.slice(prefix.length) : zipEntry.name;
-    if (/\.(ttf|otf|ltf)$/i.test(relName)) {
-      fontFilesByBase[relName] = zipEntry;
-    }
-  }
-  updateStylesFromFonts();
-
-  // Find presets.json (in root or in subfolder)
-  const presetsEntry = Object.values(zip.files).find(f => {
-    let relName = f.name.startsWith(prefix) ? f.name.slice(prefix.length) : f.name;
-    return relName.match(/^presets(\.json)?$/i);
-  });
-  if (presetsEntry) {
-    let text = await presetsEntry.async('string');
-    let jsonData = null;
-    try {
-      jsonData = JSON.parse(text);
-      allPresets = validateAndNormalizeJsonPresets(jsonData);
-      setFamilyNameInput(allPresets.group || "");
-      setMetadataInput(allPresets.metadata.description || "");
-      updatePresetsDropdown();
-      originalPresets = JSON.parse(JSON.stringify(allPresets));
-      const keys = Object.keys(allPresets.presets);
-      if (keys.length > 0) {
-        presetsDropdown.value = keys[0];
-        loadPresetOption(keys[0], false);
-        setPresetNameInput(keys[0]);
-        currentPresetName = keys[0];
-      }
-      isLoaded = true;
-      updateStylesFromFonts();
-      updateLayerList();
-      renderPreview();
-      showNotif('Font loaded');
-      if (window.hideSampleBar) window.hideSampleBar();
-      return;
-    } catch (err) {
-      showNotif('Malformed JSON in preset file.');
-      return;
-    }
-  }
-  // If no presets.json, just load all fonts in the ZIP
-  await loadAllFontsFromZipObject(zip, prefix);
-});
-
+          // Find presets.json (in root or in subfolder)
+          const presetsEntry = Object.values(zip.files).find(f => {
+            let relName = f.name.startsWith(prefix) ? f.name.slice(prefix.length) : f.name;
+            return relName.match(/^presets(\.json)?$/i);
+          });
+          if (presetsEntry) {
+            let text = await presetsEntry.async('string');
+            let jsonData = null;
+            try {
+              jsonData = JSON.parse(text);
+              allPresets = validateAndNormalizeJsonPresets(jsonData);
+              setFamilyNameInput(allPresets.group || "");
+              setMetadataInput(allPresets.metadata.description || "");
+              updatePresetsDropdown();
+              originalPresets = JSON.parse(JSON.stringify(allPresets));
+              const keys = Object.keys(allPresets.presets);
+              if (keys.length > 0) {
+                presetsDropdown.value = keys[0];
+                loadPresetOption(keys[0], false);
+                setPresetNameInput(keys[0]);
+                currentPresetName = keys[0];
+              }
+              isLoaded = true;
+              updateStylesFromFonts();
+              updateLayerList();
+              renderPreview();
+              showNotif('Font loaded');
+              if (window.hideSampleBar) window.hideSampleBar();
+              return;
+            } catch (err) {
+              showNotif('Malformed JSON in preset file.');
+              return;
+            }
+          }
+          // If no presets.json, just load all fonts in the ZIP
+          await loadAllFontsFromZipObject(zip, prefix);
+        });
       };
       reader.readAsArrayBuffer(file);
-    } else if (/\.(ttf|otf|ltf|json)$/i.test(file.name)) {
-      // Try to parse JSON as preset
+    }
+    // Handle JSON and font files (but don't process immediately)
+    else if (/\.(ttf|otf|ltf|json)$/i.test(file.name)) {
       if (file.name.toLowerCase().endsWith('.json')) {
+        // Handle JSON preset file immediately
         const reader = new FileReader();
         reader.onload = function (e) {
           let text = e.target.result;
@@ -903,24 +912,108 @@ JSZip.loadAsync(e.target.result).then(async zip => {
         };
         reader.readAsText(file);
       } else {
+        // Font file: check for duplicate
         const ext = file.name.match(/\.[^/.]+$/) ? file.name.match(/\.[^/.]+$/)[0] : ".otf";
         const baseName = file.name.replace(/\.[^/.]+$/, "");
         let targetFilename = baseName + ext;
         let existed = Object.keys(fontFilesByBase).some(fname => fname === targetFilename);
         if (existed) {
-          pendingFontAction = { file, base: baseName, ext, targetFilename };
-          duplicateFontMsg.textContent = `A font with filename "${targetFilename}" already exists.`;
-          duplicateFontModal.style.display = 'block';
-          return;
+          duplicates.push({ file, base: baseName, ext, targetFilename });
+        } else {
+          newFiles.push({ file, targetFilename });
         }
-        processFontUpload(file, targetFilename);
       }
-      if (window.hideSampleBar) window.hideSampleBar();
     }
   });
+
+  // Process all new font files now (after all files are sorted)
+  newFiles.forEach(({ file, targetFilename }) => processFontUpload(file, targetFilename));
+
+  // Handle duplicates as a batch (after all files are sorted)
+  if (duplicates.length) {
+    showDuplicateFontsModal(duplicates);
+  }
+
+  if (window.hideSampleBar) window.hideSampleBar();
 }
 
+function showDuplicateFontsModal(duplicates) {
+  // Remove any existing modal
+  const old = document.getElementById('duplicateFontModal');
+  if (old) old.remove();
 
+  // Create modal
+  const modal = document.createElement('div');
+  modal.id = 'duplicateFontModal';
+  modal.style.position = 'fixed';
+  modal.style.left = '0';
+  modal.style.top = '0';
+  modal.style.width = '100vw';
+  modal.style.height = '100vh';
+  modal.style.background = 'rgba(32,32,42,0.19)';
+  modal.style.zIndex = 99999;
+  modal.style.display = 'flex';
+  modal.style.alignItems = 'center';
+  modal.style.justifyContent = 'center';
+
+  const dialog = document.createElement('div');
+  dialog.style.background = '#fff';
+  dialog.style.borderRadius = '10px';
+  dialog.style.boxShadow = '0 2px 24px #0003';
+  dialog.style.padding = '20px 24px 16px 24px';
+  dialog.style.minWidth = '320px';
+  dialog.style.maxWidth = '98vw';
+
+  // Build duplicate list HTML
+  const duplicateListHtml = duplicates.map(
+    d => `<li style="margin-bottom:2px;">${d.targetFilename}</li>`
+  ).join('');
+
+  dialog.innerHTML = `
+    <div style="font-weight:bold;margin-bottom:10px;">The following font files already exist:</div>
+    <ul style="margin-bottom:14px;">${duplicateListHtml}</ul>
+    <div style="margin-bottom:10px;">What do you want to do?</div>
+    <button id="replaceAllFontsBtn" class="green" style="margin-right:12px;">Replace All</button>
+    <button id="skipAllFontsBtn" style="margin-right:12px;">Skip All</button>
+    <button id="cancelFontsBtn" class="red">Cancel</button>
+  `;
+
+  modal.appendChild(dialog);
+  document.body.appendChild(modal);
+
+  document.getElementById('replaceAllFontsBtn').onclick = function() {
+    duplicates.forEach(({ file, targetFilename }) => {
+      const url = URL.createObjectURL(file);
+      fontFilesByBase[targetFilename] = { url, isRuntime: true };
+      let updatedFontName = `font${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const layersToUpdate = layers.filter(l => l.filename === targetFilename);
+      layersToUpdate.forEach(layer => {
+        layer.fileUrl = url;
+        layer.fontName = updatedFontName + (Math.random().toString(36).substr(2, 3));
+        try {
+          const fontFace = new FontFace(layer.fontName, `url(${url})`);
+          fontFace.load().then(loaded => {
+            document.fonts.add(loaded);
+            renderPreview();
+          });
+        } catch (e) {}
+      });
+    });
+    modal.remove();
+    showNotif('All duplicate fonts replaced');
+    renderPreview();
+  };
+
+  document.getElementById('skipAllFontsBtn').onclick = function() {
+    modal.remove();
+    showNotif('Skipped all duplicate fonts');
+  };
+
+  document.getElementById('cancelFontsBtn').onclick = function() {
+    modal.remove();
+    showNotif('Cancelled');
+  };
+}
 
 function validateAndNormalizeJsonPresets(data) {
   // Validate and normalize the loaded JSON preset file for application use
